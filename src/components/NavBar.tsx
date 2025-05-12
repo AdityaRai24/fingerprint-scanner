@@ -75,9 +75,13 @@ const NavBar = () => {
         {/* Desktop Navigation */}
         <ul className="hidden md:flex items-center space-x-8">
           {navLinks.map((link) => (
-            <div key={link.name}>
+            <Link
+              key={link.name}
+              href={link.href}
+              className="text-foreground/80 hover:text-primary transition-colors"
+            >
               {link.name}
-            </div>
+            </Link>
           ))}
           {session ? (
             <DropdownMenu>
