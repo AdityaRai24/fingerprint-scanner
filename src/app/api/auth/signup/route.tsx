@@ -1,45 +1,67 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 export async function POST(
   req: Request,
 ){
-  try{
+  try {
     const body = await req.json();
     const { name, email, password } = body;
-    
+
     if(!email || !password){
-      return new NextResponse("Missing email or password", {status: 400});
+      return NextResponse.json(
+        { error: "Missing email or password" },
+        { status: 400 }
+      );
     }
 
-    const userAlreadyExist = await db.user.findUnique({
-        where: {
-            email: email,
-        }
-    })
+    // Check if user exists
+    const { data: existingUser } = await supabase
+      .from('Auth')
+      .select('id')
+      .eq('email', email)
+      .single();
 
-    if(userAlreadyExist?.id){
-      return new NextResponse("User already exists", {status: 409});
+    if(existingUser){
+      return NextResponse.json(
+        { error: "User already exists" },
+        { status: 409 }
+      );
     }
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const newUser = await db.user.create({
-      data: {
-        name,
-        email,
-        password: hashedPassword,
-      }
-    });
+    const { data: newUser, error: insertError } = await supabase
+      .from('Auth')
+      .insert([
+        {
+          name,
+          email,
+          password: hashedPassword,
+         
+        }
+      ])
+      .single();
 
-    // Don't send the password back in the response
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = newUser;
-    return NextResponse.json(userWithoutPassword);
+    if (insertError) {
+      console.error('Error creating user:', insertError); // Debug log
+      return NextResponse.json(
+        { error: insertError.message },
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.json({
+      success: true,
+      user: newUser
+    });
     
   } catch(error){
     console.error("REGISTER_ERROR:", error);
-    return new NextResponse("Internal Server Error", {status: 500});
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }
