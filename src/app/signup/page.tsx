@@ -47,7 +47,6 @@ const SignUp: React.FC = () => {
     setError(null);
     
     try {
-      // Send registration request to your NextAuth API endpoint
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: {
@@ -60,10 +59,10 @@ const SignUp: React.FC = () => {
         }),
       });
       
-      const data = await response.json();
+      const responseData = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed');
+        throw new Error(responseData.error || 'Registration failed');
       }
       
       // After successful registration, redirect to sign-in page

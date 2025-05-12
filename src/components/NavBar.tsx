@@ -1,16 +1,28 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { Menu, X, Fingerprint } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Menu, X, Fingerprint, User } from 'lucide-react';
 import { Button } from './ui/button';
 import Link from 'next/link';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from './ui/dropdown-menu';
 
 const NavBar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { data: session } = useSession();
   
+  const handleOverlayClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      setMobileMenuOpen(false);
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
@@ -21,6 +33,22 @@ const NavBar = () => {
       window.removeEventListener('scroll', handleScroll);
     };
   }, []);
+
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setMobileMenuOpen(false);
+      }
+    };
+
+    if (mobileMenuOpen) {
+      document.addEventListener('keydown', handleEscape);
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [mobileMenuOpen]);
 
   const navLinks = [
     { name: 'Features', href: '/#features' },
@@ -47,60 +75,98 @@ const NavBar = () => {
         {/* Desktop Navigation */}
         <ul className="hidden md:flex items-center space-x-8">
           {navLinks.map((link) => (
-            <li key={link.name}>
-              <a 
-                href={link.href} 
-                className="text-foreground/80 hover:text-primary transition-colors duration-300"
-              >
-                {link.name}
-              </a>
-            </li>
+            <div key={link.name}>
+              {link.name}
+            </div>
           ))}
-          <Link href={session ? "/capture" : "/signup"}>
-            <Button className="hero-button ml-4">Get Started</Button>
-          </Link>
+          {session ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="ml-4">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem className="flex items-center gap-2">
+                  <span className="font-medium">{session.user?.name}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => signOut()} className="text-red-500 focus:text-red-500 cursor-pointer">
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Link href="/signup">
+              <Button className="hero-button ml-4">Get Started</Button>
+            </Link>
+          )}
         </ul>
         
         {/* Mobile Menu Button */}
         <button 
           className="md:hidden text-foreground"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
       </div>
       
       {/* Mobile Navigation Overlay */}
-      {mobileMenuOpen && (
-        <motion.div 
-          className="fixed inset-0 bg-background/95 z-40 md:hidden pt-20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-        >
-          <ul className="flex flex-col items-center space-y-6 p-4">
-            {navLinks.map((link) => (
-              <li key={link.name}>
-                <a 
-                  href={link.href} 
-                  className="text-lg font-medium text-foreground/80 hover:text-primary"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {link.name}
-                </a>
-              </li>
-            ))}
-            <Link href={session ? "/capture" : "/signup"}>
-              <Button 
-                className="hero-button w-full mt-6"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Get Started
-              </Button>
-            </Link>
-          </ul>
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div 
+            className="fixed inset-0 bg-background/95 z-40 md:hidden pt-20"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            onClick={handleOverlayClick}
+          >
+            <div className="container mx-auto px-4">
+              <ul className="flex flex-col items-center space-y-6 p-4">
+                {navLinks.map((link) => (
+                  <li key={link.name}>
+                    <Link 
+                      href={link.href} 
+                      className="text-lg font-medium text-foreground/80 hover:text-primary"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      {link.name}
+                    </Link>
+                  </li>
+                ))}
+                {session ? (
+                  <>
+                    <div className="text-center">
+                      <p className="font-medium">{session.user?.name}</p>
+                      <Button 
+                        variant="ghost" 
+                        className="text-red-500 hover:text-red-900 mt-2"
+                        onClick={() => {
+                          signOut();
+                          setMobileMenuOpen(false);
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    </div>
+                  </>
+                ) : (
+                  <Link href="/signup">
+                    <Button 
+                      className="hero-button w-full mt-6"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Get Started
+                    </Button>
+                  </Link>
+                )}
+              </ul>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.nav>
   );
 };
