@@ -36,7 +36,6 @@
 ### Prerequisites
 
 - Node.js (v18+ recommended)
-- PostgreSQL database
 - [pnpm](https://pnpm.io/) (or npm/yarn)
 
 ### Installation
@@ -58,13 +57,7 @@
 
    - Copy `.env.example` to `.env` and fill in your database and authentication credentials.
 
-4. **Set up the database:**
-
-   ```bash
-   pnpm db:push
-   ```
-
-5. **Run the development server:**
+4. **Run the development server:**
    ```bash
    pnpm dev
    ```
