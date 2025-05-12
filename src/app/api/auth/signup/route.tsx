@@ -18,7 +18,7 @@ export async function POST(
 
     // Check if user exists
     const { data: existingUser } = await supabase
-      .from('Auth')
+      .from('auth')
       .select('id')
       .eq('email', email)
       .single();
@@ -32,29 +32,32 @@ export async function POST(
 
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    const { data: newUser, error: insertError } = await supabase
-      .from('Auth')
+    // Create Auth entry
+    const { data: newAuth, error: authError } = await supabase
+      .from('auth')
       .insert([
         {
           name,
           email,
           password: hashedPassword,
-         
         }
       ])
+      .select()
       .single();
 
-    if (insertError) {
-      console.error('Error creating user:', insertError); // Debug log
+    if (authError) {
+      console.error('Error creating auth entry:', authError);
       return NextResponse.json(
-        { error: insertError.message },
+        { error: authError.message },
         { status: 400 }
       );
     }
-    
+
     return NextResponse.json({
       success: true,
-      user: newUser
+      user: {
+        ...newAuth,
+      }
     });
     
   } catch(error){
