@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveUser } from "@/app/actions/saveUser";
 import { toast } from "sonner";
 import { UserCircle2, CheckCircle2, AlertCircle, Loader2 } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 interface PersonFormProps {
   faceImage?: string;
@@ -16,6 +17,7 @@ interface PersonFormProps {
 }
 
 export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
+  const { data: session } = useSession();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [address, setAddress] = useState("");
@@ -26,6 +28,12 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!session) {
+      toast.error("You must be logged in to save information.");
+      return;
+    }
+
     setSuccess(null);
     setError(null);
     startTransition(async () => {
@@ -45,8 +53,8 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
         setAdditionalInfo("");
         toast.success("Person information saved successfully!");
       } catch (err) {
+        console.error('Error details:', err);
         toast.error("Failed to save person information.");
-        console.error(err);
         setError("Failed to save.");
       }
     });

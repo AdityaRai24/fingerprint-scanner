@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { performance } from "perf_hooks";
 import * as dotenv from "dotenv";
+import { v4 as uuidv4 } from 'uuid';
 
 // Load environment variables
 dotenv.config();
@@ -47,8 +48,32 @@ async function generateTestData(count: number) {
   console.log(`Generating ${count} test records...`);
   const startTime = performance.now();
 
+  // First, create auth records
+  console.log('Creating auth records...');
+  const authData = Array.from({ length: count }, (_, i) => {
+    const randomString = Math.random().toString(36).substring(2, 8); // generates random alphanumeric string
+    return {
+      id: uuidv4(),
+      name: `testuser${i}_${randomString}`,
+      email: `testuser${i}_${randomString}@example.com`,
+      password: `testpassword${i}`,
+    };
+  });
+
+  const { data: authRecords, error: authError } = await supabase
+    .from("auth")
+    .insert(authData)
+    .select();
+
+  if (authError) {
+    console.error("Error inserting auth records:", authError);
+    return;
+  }
+
+  console.log('Auth records created successfully. Generating user data...');
+
   const testData = await Promise.all(
-    Array.from({ length: count }, async (_, i) => {
+    authRecords.map(async (auth, i) => {
       const faceImage = await generateRandomImage();
       const thumbImage = await generateRandomImage();
       
@@ -57,6 +82,7 @@ async function generateTestData(count: number) {
       const thumbHash = await imageHash(thumbImage);
 
       return {
+        auth_id: auth.id,
         first_name: `Test${i}`,
         last_name: `User${i}`,
         address: `Test Address ${i}`,
@@ -86,7 +112,7 @@ async function generateTestData(count: number) {
 async function main() {
   try {
     // Generate test data
-    await generateTestData(800);
+    await generateTestData(400);
   } catch (error) {
     console.error("Error in test:", error);
   }

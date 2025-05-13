@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import CameraFeed from "@/components/CameraFeed";
 import ImagePreview from "@/components/ImagePreview";
 import PersonForm from "@/components/PersonForm";
@@ -12,9 +14,25 @@ import { motion } from "framer-motion";
 import React from "react";
 
 export default function Home() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [faceImage, setFaceImage] = useState<string | undefined>();
   const [thumbImage, setThumbImage] = useState<string | undefined>();
   const [currentStep, setCurrentStep] = useState(1);
+
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/signin");
+    }
+  }, [status, router]);
+
+  if (status === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  if (!session) {
+    return null;
+  }
 
   const handleCapture = (img: string, type: "face" | "thumb") => {
     if (type === "face") {

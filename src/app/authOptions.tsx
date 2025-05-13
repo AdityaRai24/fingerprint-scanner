@@ -1,7 +1,7 @@
 import { AuthOptions } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { db } from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 export const authOptions: AuthOptions = {
   providers: [
@@ -16,13 +16,14 @@ export const authOptions: AuthOptions = {
           throw new Error("Missing credentials");
         }
 
-        const user = await db.user.findFirst({
-          where: {
-            email: credentials.email
-          }
-        });
+        // Find user by email
+        const { data: user, error } = await supabase
+          .from('auth')
+          .select('*')
+          .eq('email', credentials.email)
+          .single();
 
-        if(!user?.password || !user.email){
+        if(error || !user || !user.password){
           throw new Error("Invalid credentials");
         }
 
@@ -40,6 +41,20 @@ export const authOptions: AuthOptions = {
       },
     })
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id;
+      }
+      return session;
+    }
+  },
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt"
