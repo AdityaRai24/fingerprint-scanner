@@ -51,7 +51,7 @@ const SignIn: React.FC = () => {
       } else {
         // Successfully signed in
         const baseUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://scanly.nawin.xyz'
+        ? process.env.NEXTAUTH_URL
         : 'http://localhost:3000';
         
       // Navigate to the capture page
