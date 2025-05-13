@@ -51,7 +51,7 @@ const SignIn: React.FC = () => {
       } else {
         // Successfully signed in
         const baseUrl = process.env.NODE_ENV === 'production' 
-        ? process.env.NEXTAUTH_URL
+        ? 'https://fingerprint-scanner.vercel.app'
         : 'http://localhost:3000';
         
       // Navigate to the capture page
