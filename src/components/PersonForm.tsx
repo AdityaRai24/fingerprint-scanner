@@ -26,39 +26,53 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!session) {
-      toast.error("You must be logged in to save information.");
-      return;
-    }
+  const handleSave = async (e: React.FormEvent) => {
+  e.preventDefault();
+  
+  if (!session) {
+    toast.error("You must be logged in to save information.");
+    return;
+  }
 
-    setSuccess(null);
-    setError(null);
-    startTransition(async () => {
-      try {
-        await saveUser({
-          firstName,
-          lastName,
-          address,
-          additionalInfo,
-          faceImage,
-          thumbImage,
-        });
+  setSuccess(null);
+  setError(null);
+  startTransition(async () => {
+    try {
+      toast.info("Saving user information...");
+      
+      const res = await fetch("http://127.0.0.1:8000/api/register", {
+        method: "POST",
+        body: JSON.stringify({
+          first_name: firstName,
+          last_name: lastName,
+          address: address,
+          additional_info: additionalInfo,
+          face_image: faceImage,
+          thumb_image: thumbImage
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
         setSuccess("Saved successfully!");
         setFirstName("");
         setLastName("");
         setAddress("");
         setAdditionalInfo("");
         toast.success("Person information saved successfully!");
-      } catch (err) {
-        console.error('Error details:', err);
-        toast.error("Failed to save person information.");
+      } else {
         setError("Failed to save.");
+        toast.error("Failed to save person information.");
       }
-    });
-  };
+    } catch (err) {
+      console.error('Error details:', err);
+      setError("Failed to save.");
+      toast.error("Failed to save person information.");
+    }
+  });
+};
 
   return (
     <Card className="h-full flex flex-col glass animate-fade-in border-2 border-primary/20 hover:border-primary/40 transition-all duration-300">

@@ -58,6 +58,7 @@ export const authOptions: AuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: {
     strategy: "jwt"
+
   },
   debug: process.env.NODE_ENV !== "production",
   pages: {
