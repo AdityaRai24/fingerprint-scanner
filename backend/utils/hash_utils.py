@@ -19,10 +19,3 @@ def image_hash(base64_str: str) -> str:
     # Generate hash
     hash_bits = ''.join(['1' if pixel > avg else '0' for pixel in pixels])
     return hash_bits.zfill(64)
-
-# Optional: Add an async wrapper if needed elsewhere
-async def image_hash_async(base64_str: str) -> str:
-    """
-    Async wrapper for the hash function if needed
-    """
-    return image_hash(base64_str)

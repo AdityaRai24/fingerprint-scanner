@@ -60,8 +60,6 @@ export default function Home() {
       
       <FeaturesSection />
       <ProcessSection />
-      {/* <TestimonialsSection /> */}
-      {/* <BlogSection /> */}
       <CtaSection />
       <Footer />
     </div>
