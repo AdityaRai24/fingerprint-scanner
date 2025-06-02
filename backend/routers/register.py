@@ -1,14 +1,25 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from database.supabase_client import supabase
 from utils.hash_utils import image_hash
 from pydantic import BaseModel
 import cv2
 import numpy as np
 import base64
-import json  # Changed from pickle to json
+import json  
+import jwt
 from typing import Optional
+import os
+from datetime import datetime
 
 router = APIRouter(tags=["register"])
+
+# JWT Configuration - Make sure to set these environment variables
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  # Change this!
+JWT_ALGORITHM = "HS256"
+
+# Security scheme
+security = HTTPBearer()
 
 class RegisterRequest(BaseModel):
     first_name: str
@@ -17,6 +28,63 @@ class RegisterRequest(BaseModel):
     additional_info: str
     face_image: Optional[str] = None
     thumb_image: Optional[str] = None
+
+class User(BaseModel):
+    id: str
+    email: str
+    name: str
+
+def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+    """
+    Verify JWT token and return user information
+    """
+    try:
+        token = credentials.credentials
+        
+        # Decode the JWT token
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        
+        # Check if token is expired
+        exp = payload.get("exp")
+        if exp and datetime.utcnow().timestamp() > exp:
+            raise HTTPException(
+                status_code=401,
+                detail="Token has expired",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        
+        # Extract user information
+        user_id = payload.get("id")
+        email = payload.get("email")
+        name = payload.get("name")
+        
+        if not user_id or not email:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token payload",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        
+        return User(id=user_id, email=email, name=name)
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=401,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
 def extract_features(base64_str: str):
     """
@@ -71,9 +139,10 @@ def extract_features(base64_str: str):
         return None, 0
     
 @router.post("/")
-async def register_user(req: RegisterRequest):
+async def register_user(req: RegisterRequest, current_user: User = Depends(verify_jwt_token)):
     try:
         print(f"\n🚀 Starting user registration for: {req.first_name} {req.last_name}")
+        print(f"👤 Authenticated user: {current_user.name} ({current_user.email})")
         
         # Step 1: Generate hashes using your existing image_hash function
         print("📋 Step 1: Generating perceptual hashes")
@@ -177,6 +246,7 @@ async def register_user(req: RegisterRequest):
             print(f"   - User ID: {user_id}")
             print(f"   - Name: {req.first_name} {req.last_name}")
             print(f"   - Biometric data stored: Face({'✅' if face_hash else '❌'}), Thumb({'✅' if thumb_hash else '❌'})")
+            print(f"   - Registered by: {current_user.email}")
             
             return {
                 "success": True,
@@ -189,7 +259,8 @@ async def register_user(req: RegisterRequest):
                     "thumb_features_extracted": thumb_features_str is not None,
                     "face_bucket": face_bucket,
                     "thumb_bucket": thumb_bucket
-                }
+                },
+                "registered_by": current_user.email
             }
         else:
             raise Exception("Failed to insert user - no data returned")
@@ -210,11 +281,10 @@ async def register_user(req: RegisterRequest):
         else:
             raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
 
-# Optional: Health check endpoint to verify feature extraction is working
-@router.get("/test-features")
-async def test_feature_extraction():
     """Test endpoint to verify OpenCV feature extraction is working"""
     try:
+        print(f"👤 Feature extraction test requested by: {current_user.name} ({current_user.email})")
+        
         # Create a simple test image
         test_img = np.random.randint(0, 255, (100, 100), dtype=np.uint8)
         _, buffer = cv2.imencode('.jpg', test_img)
@@ -226,11 +296,13 @@ async def test_feature_extraction():
         return {
             "opencv_working": True,
             "features_extracted": features is not None,
-            "message": "OpenCV feature extraction is working correctly"
+            "message": "OpenCV feature extraction is working correctly",
+            "tested_by": current_user.email
         }
     except Exception as e:
         return {
             "opencv_working": False,
             "error": str(e),
-            "message": "OpenCV feature extraction failed"
+            "message": "OpenCV feature extraction failed",
+            "tested_by": current_user.email
         }

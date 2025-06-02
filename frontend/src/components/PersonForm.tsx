@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,87 +25,117 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
   const [loading, startTransition] = useTransition();
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [token, setToken] = useState<string | null>(null);
 
-  const handleSave = async (e: React.FormEvent) => {
-  e.preventDefault();
-  
-  if (!session) {
-    toast.error("You must be logged in to save information.");
-    return;
+  useEffect(() => {
+    fetchToken();
+  }, []);
+
+  async function fetchToken() {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_HOST_URL}/api/token`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      setToken(data.token);
+    } catch (error) {
+      console.error("Error fetching token:", error);
+      toast.error("Failed to authenticate", {
+        description: "Please try again later"
+      });
+    }
   }
 
-  setSuccess(null);
-  setError(null);
-  startTransition(async () => {
-    try {
-      toast.info("Saving user information...");
-      
-      const res = await fetch("http://127.0.0.1:8000/api/register", {
-        method: "POST",
-        body: JSON.stringify({
-          first_name: firstName,
-          last_name: lastName,
-          address: address,
-          additional_info: additionalInfo,
-          face_image: faceImage,
-          thumb_image: thumbImage
-        }),
-        headers: { "Content-Type": "application/json" },
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!session) {
+      toast.error("You must be logged in to save information.");
+      return;
+    }
+
+    if (!token) {
+      toast.error("Authentication required", {
+        description: "Please wait while we authenticate you"
       });
-      
-      const data = await res.json();
-      
-      if (data.success) {
-        setSuccess("Saved successfully!");
-        setFirstName("");
-        setLastName("");
-        setAddress("");
-        setAdditionalInfo("");
-        toast.success("Person information saved successfully!");
-      } else {
+      await fetchToken();
+      return;
+    }
+
+    setSuccess(null);
+    setError(null);
+    startTransition(async () => {
+      try {
+        toast.info("Saving user information...");
+        
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/register`, {
+          method: "POST",
+          body: JSON.stringify({
+            first_name: firstName,
+            last_name: lastName,
+            address: address,
+            additional_info: additionalInfo,
+            face_image: faceImage,
+            thumb_image: thumbImage
+          }),
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${token}`
+          },
+        });
+        
+        const data = await res.json();
+        
+        if (data.success) {
+          setSuccess("Saved successfully!");
+          setFirstName("");
+          setLastName("");
+          setAddress("");
+          setAdditionalInfo("");
+          toast.success("Person information saved successfully!");
+        } else {
+          setError("Failed to save.");
+          toast.error("Failed to save person information.");
+        }
+      } catch (err) {
+        console.error('Error details:', err);
         setError("Failed to save.");
         toast.error("Failed to save person information.");
       }
-    } catch (err) {
-      console.error('Error details:', err);
-      setError("Failed to save.");
-      toast.error("Failed to save person information.");
-    }
-  });
-};
+    });
+  };
 
   return (
-    <Card className="h-full flex flex-col glass animate-fade-in border-2 border-primary/20 hover:border-primary/40 transition-all duration-300">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2">
-          <motion.div 
-            className="flex items-center space-x-2"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5 }}
+    <Card className="glass overflow-hidden border border-primary/20 shadow-xl hover:shadow-2xl transition-all duration-300">
+      <CardHeader className="border-b border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 backdrop-blur-sm">
+        <CardTitle className="flex items-center gap-2 text-primary">
+          <motion.div
+            animate={{ rotate: 360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
           >
-            <div className="p-2 bg-primary/10 rounded-lg">
-              <UserCircle2 className="w-6 h-6 text-primary" />
-            </div>
-            <span>Person Information</span>
+            <UserCircle2 className="w-6 h-6" />
           </motion.div>
+          Person Information
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-6">
         <motion.form 
           onSubmit={handleSave} 
           className="space-y-6"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="grid gap-6 md:grid-cols-2">
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
+          <motion.div 
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.1 }}
+          >
+            <div className="space-y-2">
               <Input
                 placeholder="First Name"
                 value={firstName}
@@ -113,13 +143,8 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
                 className="input-animated bg-background/50 backdrop-blur-sm border-primary/20 focus:border-primary/40"
                 required
               />
-            </motion.div>
-            <motion.div 
-              className="space-y-2"
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
+            </div>
+            <div className="space-y-2">
               <Input
                 placeholder="Last Name"
                 value={lastName}
@@ -127,8 +152,8 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
                 className="input-animated bg-background/50 backdrop-blur-sm border-primary/20 focus:border-primary/40"
                 required
               />
-            </motion.div>
-          </div>
+            </div>
+          </motion.div>
 
           <motion.div 
             className="space-y-2"
@@ -167,7 +192,7 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
             <Button
               type="submit"
               className="w-full bg-primary hover:bg-primary/90 text-white transition-all duration-300 relative overflow-hidden group"
-              disabled={loading || !faceImage || !thumbImage}
+              disabled={loading || !faceImage || !thumbImage || !token}
             >
               <div className="relative z-10 flex items-center justify-center">
                 {loading ? (
