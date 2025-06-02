@@ -56,12 +56,37 @@
    pnpm install
    ```
 
-3. **Install backend dependencies:**
+3. **Set up Python virtual environment and install backend dependencies:**
 
+   **On Windows:**
    ```bash
    cd ../backend
+   
+   # Create virtual environment
+   python -m venv venv
+   
+   # Activate virtual environment
+   venv\Scripts\activate
+   
+   # Install dependencies
    pip install -r requirements.txt
    ```
+
+   **On macOS/Linux:**
+   ```bash
+   cd ../backend
+   
+   # Create virtual environment
+   python3 -m venv venv
+   
+   # Activate virtual environment
+   source venv/bin/activate
+   
+   # Install dependencies
+   pip install -r requirements.txt
+   ```
+
+   > **Note:** Always activate the virtual environment before running the backend server or installing new Python packages. To deactivate the virtual environment, simply run `deactivate` in your terminal.
 
 4. **Configure environment variables:**
 
@@ -73,6 +98,11 @@
    **Backend (FastAPI):**
    ```bash
    cd backend
+   
+   # Make sure virtual environment is activated
+   # Windows: venv\Scripts\activate
+   # macOS/Linux: source venv/bin/activate
+   
    uvicorn main:app --reload --port 8000
    ```
 
@@ -84,6 +114,54 @@
 
    The frontend will be available at [http://localhost:3000](http://localhost:3000)
    The backend API will be available at [http://localhost:8000](http://localhost:8000)
+
+---
+
+## Python Virtual Environment Management
+
+### Why Use a Virtual Environment?
+
+A virtual environment helps you:
+- Isolate project dependencies from system-wide Python packages
+- Avoid version conflicts between different projects
+- Maintain clean, reproducible development environments
+- Easily share exact dependency versions with other developers
+
+### Managing Your Virtual Environment
+
+**Activate the environment** (do this every time you work on the project):
+```bash
+# Windows
+venv\Scripts\activate
+
+# macOS/Linux
+source venv/bin/activate
+```
+
+When activated, your terminal prompt will show `(venv)` at the beginning.
+
+**Install new packages** (only when virtual environment is activated):
+```bash
+pip install package-name
+pip freeze > requirements.txt  # Update requirements file
+```
+
+**Deactivate the environment** (when you're done working):
+```bash
+deactivate
+```
+
+**Recreate the environment** (if needed):
+```bash
+# Remove existing environment
+rm -rf venv  # macOS/Linux
+rmdir /s venv  # Windows
+
+# Create new environment and install dependencies
+python -m venv venv  # or python3 -m venv venv
+# Activate environment (see commands above)
+pip install -r requirements.txt
+```
 
 ---
 
@@ -239,9 +317,12 @@ Be sure to set your Supabase credentials in the `.env` files as described above.
 - `pnpm lint` — Run ESLint
 
 ### Backend (FastAPI)
+**Note:** Always activate the virtual environment before running these commands.
+
 - `uvicorn main:app --reload` — Start the development server
 - `uvicorn main:app --host 0.0.0.0 --port 8000` — Start the production server
 - `python -m pytest` — Run tests
+- `pip freeze > requirements.txt` — Update requirements file after installing new packages
 
 ---
 
@@ -260,6 +341,7 @@ Be sure to set your Supabase credentials in the `.env` files as described above.
 │   └── package.json
 │
 ├── backend/
+│   ├── venv/              # Python virtual environment (created after setup)
 │   ├── database/          # Database configuration and models
 │   ├── routers/           # FastAPI route handlers
 │   ├── utils/             # Utility functions and helpers
@@ -268,6 +350,26 @@ Be sure to set your Supabase credentials in the `.env` files as described above.
 │
 └── README.md
 ```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+**Virtual environment not activating:**
+- Make sure you're in the correct directory (`backend/`)
+- Check that the virtual environment was created successfully
+- Try recreating the virtual environment if activation fails
+
+**Package installation errors:**
+- Ensure the virtual environment is activated
+- Try upgrading pip: `pip install --upgrade pip`
+- For OpenCV issues on some systems, you might need: `pip install opencv-python-headless`
+
+**Port already in use:**
+- Change the port in the FastAPI command: `uvicorn main:app --reload --port 8001`
+- Or kill the process using the port
 
 ---
 
