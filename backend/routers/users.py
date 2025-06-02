@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from database.supabase_client import supabase
 from utils.hash_utils import image_hash
 from pydantic import BaseModel
@@ -7,13 +8,80 @@ import numpy as np
 import base64
 import pickle
 import json
+import jwt
+from typing import Optional
+import os
+from datetime import datetime
 
 router = APIRouter(tags=["users"])
+
+# JWT Configuration - Make sure to set these environment variables
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  # Change this!
+JWT_ALGORITHM = "HS256"
+
+# Security scheme
+security = HTTPBearer()
 
 class SearchRequest(BaseModel):
     image: str
     type: str
 
+class User(BaseModel):
+    id: str
+    email: str
+    name: str
+
+def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Depends(security)) -> User:
+    """
+    Verify JWT token and return user information
+    """
+    try:
+        token = credentials.credentials
+        
+        # Decode the JWT token
+        payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
+        
+        # Check if token is expired
+        exp = payload.get("exp")
+        if exp and datetime.utcnow().timestamp() > exp:
+            raise HTTPException(
+                status_code=401,
+                detail="Token has expired",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        
+        # Extract user information
+        user_id = payload.get("id")
+        email = payload.get("email")
+        name = payload.get("name")
+        
+        if not user_id or not email:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid token payload",
+                headers={"WWW-Authenticate": "Bearer"}
+            )
+        
+        return User(id=user_id, email=email, name=name)
+        
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(
+            status_code=401,
+            detail="Token has expired",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    except jwt.InvalidTokenError:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid token",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication failed",
+            headers={"WWW-Authenticate": "Bearer"}
+        )
 
 def extract_features(base64_str: str):
     """
@@ -236,9 +304,13 @@ def match_features(search_descriptors, stored_features_str, min_matches=20):
         }
 
 @router.post("/search")
-async def search_user(req: SearchRequest):
+async def search_user(req: SearchRequest, current_user: User = Depends(verify_jwt_token)):
+    """
+    Search for users using biometric data with JWT authentication
+    """
     try:
         print(f"\n🚀 Starting search for {req.type} image...")
+        print(f"👤 Authenticated user: {current_user.name} ({current_user.email})")
         
         # Step 1: Hash-based bucketing (keeping your existing logic)
         print("📋 Step 1: Hash-based bucketing")
@@ -350,7 +422,8 @@ async def search_user(req: SearchRequest):
                 "search_info": {
                     "hash_bucket": search_bucket,
                     "candidates_checked": len(candidates),
-                    "search_keypoints": search_keypoints_count
+                    "search_keypoints": search_keypoints_count,
+                    "searched_by": current_user.email
                 }
             }
         else:
@@ -364,7 +437,8 @@ async def search_user(req: SearchRequest):
                 "search_info": {
                     "hash_bucket": search_bucket,
                     "candidates_checked": len(candidates),
-                    "search_keypoints": search_keypoints_count
+                    "search_keypoints": search_keypoints_count,
+                    "searched_by": current_user.email
                 }
             }
             
@@ -373,10 +447,11 @@ async def search_user(req: SearchRequest):
         raise HTTPException(status_code=500, detail=str(e))
     
 @router.get("/debug-features/{user_id}")
-async def debug_stored_features(user_id: str):
+async def debug_stored_features(user_id: str, current_user: User = Depends(verify_jwt_token)):
     """Debug endpoint to check what's actually stored in the database"""
     try:
         print(f"🔍 Debugging stored features for user: {user_id}")
+        print(f"👤 Requested by: {current_user.name} ({current_user.email})")
         
         # Get the user data
         result = supabase.table("users").select("*").eq("id", user_id).execute()
@@ -388,6 +463,7 @@ async def debug_stored_features(user_id: str):
         
         debug_info = {
             "user_id": user_id,
+            "requested_by": current_user.email,
             "face_features_info": {},
             "thumb_features_info": {}
         }
@@ -465,3 +541,10 @@ async def debug_stored_features(user_id: str):
     except Exception as e:
         print(f"❌ Debug error: {e}")
         return {"error": str(e)}
+
+
+    """Get current authenticated user information"""
+    return {
+        "user": current_user,
+        "message": "Authentication successful"
+    }

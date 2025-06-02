@@ -44,14 +44,13 @@ export default function SearchPage() {
 
   async function fetchToken() {
     try {
-      const response = await fetch("http://localhost:3000/api/token", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_HOST_URL}/api/token`, {
         method: "GET",
         headers: {
           "Content-Type": "application/json",
         },
       });
       const data = await response.json();
-      console.log(data)
       setToken(data.token);
     } catch (error) {
       console.error("Error fetching token:", error);
@@ -98,7 +97,7 @@ export default function SearchPage() {
     });
     
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/users/search", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/search`, {
         method: "POST",
         body: JSON.stringify({ image: searchImage, type: searchType }),
         headers: { 

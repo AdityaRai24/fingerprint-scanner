@@ -1,7 +1,9 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
-/node_modules
+# Dependencies
+node_modules/
+frontend/node_modules/
+backend/venv/
 /.pnp
 .pnp.*
 .yarn/*
@@ -10,39 +12,64 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
+# Testing
 /coverage
+frontend/coverage/
 
-# next.js
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/build/
 /.next/
 /out/
 
-# production
+# Production builds
 /build
+frontend/dist/
+backend/dist/
 
-# misc
-.DS_Store
-*.pem
+# Environment variables
+.env
+.env.local
+.env.local.*
+frontend/.env
+frontend/.env.local
+frontend/.env.development.local
+frontend/.env.test.local
+frontend/.env.production.local
+backend/.env
+backend/.env.local
 
-# debug
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+backend/*.log
 
-# env files (can opt-in for committing if needed)
-.env.local.*
-.env
+# Temporary files
+*.tmp
+*.temp
 
-# vercel
+# Vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
+frontend/next-env.d.ts
 
-backend/venv/
-backend/.env
+# Python
 backend/__pycache__/
 backend/**/__pycache__/
 backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.Python
+backend/pip-log.txt
+backend/pip-delete-this-directory.txt
+backend/.pytest_cache/
+backend/htmlcov/
