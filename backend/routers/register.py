@@ -14,11 +14,9 @@ from datetime import datetime
 
 router = APIRouter(tags=["register"])
 
-# JWT Configuration - Make sure to set these environment variables
 JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  # Change this!
 JWT_ALGORITHM = "HS256"
 
-# Security scheme
 security = HTTPBearer()
 
 class RegisterRequest(BaseModel):
@@ -280,29 +278,3 @@ async def register_user(req: RegisterRequest, current_user: User = Depends(verif
             )
         else:
             raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")
-
-    """Test endpoint to verify OpenCV feature extraction is working"""
-    try:
-        print(f"👤 Feature extraction test requested by: {current_user.name} ({current_user.email})")
-        
-        # Create a simple test image
-        test_img = np.random.randint(0, 255, (100, 100), dtype=np.uint8)
-        _, buffer = cv2.imencode('.jpg', test_img)
-        test_base64 = "data:image/jpeg;base64," + base64.b64encode(buffer).decode()
-        
-        # Test feature extraction
-        features = extract_features(test_base64)
-        
-        return {
-            "opencv_working": True,
-            "features_extracted": features is not None,
-            "message": "OpenCV feature extraction is working correctly",
-            "tested_by": current_user.email
-        }
-    except Exception as e:
-        return {
-            "opencv_working": False,
-            "error": str(e),
-            "message": "OpenCV feature extraction failed",
-            "tested_by": current_user.email
-        }

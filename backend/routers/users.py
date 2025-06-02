@@ -15,11 +15,9 @@ from datetime import datetime
 
 router = APIRouter(tags=["users"])
 
-# JWT Configuration - Make sure to set these environment variables
-JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  # Change this!
+JWT_SECRET_KEY = os.environ.get("JWT_SECRET_KEY")  
 JWT_ALGORITHM = "HS256"
 
-# Security scheme
 security = HTTPBearer()
 
 class SearchRequest(BaseModel):
@@ -38,10 +36,8 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Depends(securit
     try:
         token = credentials.credentials
         
-        # Decode the JWT token
         payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=[JWT_ALGORITHM])
         
-        # Check if token is expired
         exp = payload.get("exp")
         if exp and datetime.utcnow().timestamp() > exp:
             raise HTTPException(
@@ -50,7 +46,6 @@ def verify_jwt_token(credentials: HTTPAuthorizationCredentials = Depends(securit
                 headers={"WWW-Authenticate": "Bearer"}
             )
         
-        # Extract user information
         user_id = payload.get("id")
         email = payload.get("email")
         name = payload.get("name")
@@ -541,10 +536,3 @@ async def debug_stored_features(user_id: str, current_user: User = Depends(verif
     except Exception as e:
         print(f"❌ Debug error: {e}")
         return {"error": str(e)}
-
-
-    """Get current authenticated user information"""
-    return {
-        "user": current_user,
-        "message": "Authentication successful"
-    }

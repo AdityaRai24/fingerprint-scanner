@@ -57,14 +57,14 @@ export default function ImagePreview({ faceImage, thumbImage }: ImagePreviewProp
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
-                className="w-full h-full"
+                className="w-full h-full flex items-center justify-center"
               >
                 <Image
                   src={faceImage}
                   alt="Face Preview"
                   width={320}
                   height={320}
-                  className="object-cover w-full h-full"
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </motion.div>
@@ -112,14 +112,14 @@ export default function ImagePreview({ faceImage, thumbImage }: ImagePreviewProp
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ duration: 0.3 }}
-                className="w-full h-full"
+                className="w-full h-full flex items-center justify-center"
               >
                 <Image
                   src={thumbImage}
                   alt="Thumb Preview"
                   width={320}
                   height={320}
-                  className="object-cover w-full h-full"
+                  className="max-w-full max-h-full w-auto h-auto object-contain"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </motion.div>
