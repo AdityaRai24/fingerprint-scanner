@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Webcam from "react-webcam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,29 @@ export default function SearchPage() {
   } | null>(null);
   const [loading, setLoading] = useState(false);
   const [searchType, setSearchType] = useState<"face" | "thumb">("thumb");
+  const [token, setToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchToken();
+  }, []);
+
+  async function fetchToken() {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_HOST_URL}/api/token`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const data = await response.json();
+      setToken(data.token);
+    } catch (error) {
+      console.error("Error fetching token:", error);
+      toast.error("Failed to authenticate", {
+        description: "Please try again later"
+      });
+    }
+  }
 
   const handleCapture = () => {
     if (webcamRef.current) {
@@ -59,29 +82,56 @@ export default function SearchPage() {
   };
 
   const handleSearch = async () => {
+    if (!token) {
+      toast.error("Authentication required", {
+        description: "Please wait while we authenticate you"
+      });
+      await fetchToken();
+      return;
+    }
+
     setLoading(true);
     setResult(null);
     toast.info("Searching database for matches...", {
       description: "This may take a few moments."
     });
-    const res = await fetch("/api/search", {
-      method: "POST",
-      body: JSON.stringify({ image: searchImage, type: searchType }),
-      headers: { "Content-Type": "application/json" },
-    });
-    const data = await res.json();
-    setResult(data);
-    setLoading(false);
-    if (data.match) {
-      toast.success("Match found!", {
-        description: `Found a match with ${data.user.first_name} ${data.user.last_name}`
+    
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/search`, {
+        method: "POST",
+        body: JSON.stringify({ image: searchImage, type: searchType }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
       });
-    } else {
-      toast.error("No match found", {
-        description: "The biometric data does not match any records in our system."
+
+      if (!res.ok) {
+        throw new Error("Search request failed");
+      }
+
+      const data = await res.json();
+      setResult(data);
+      
+      if (data.match) {
+        toast.success("Match found!", {
+          description: `Found a match with ${data.user.first_name} ${data.user.last_name}`
+        });
+      } else {
+        toast.error("No match found", {
+          description: "The biometric data does not match any records in our system."
+        });
+      }
+    } catch (error) {
+      console.error("Search error:", error);
+      toast.error("Search failed", {
+        description: "Please try again later"
       });
+    } finally {
+      setLoading(false);
     }
   };
+
 
   return (
     <main className="min-h-screen">
