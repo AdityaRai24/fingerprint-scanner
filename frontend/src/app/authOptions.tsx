@@ -45,20 +45,30 @@ export const authOptions: AuthOptions = {
     async jwt({ token, user }) {
       if (user) {
         token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         session.user.id = token.id;
+        // Include the JWT token in the session
+        session.accessToken = token;
       }
       return session;
     }
   },
+  jwt: {
+    // Use a consistent secret for JWT signing
+    secret: process.env.NEXTAUTH_SECRET,
+    // Optional: customize JWT expiration
+    maxAge: 24 * 60 * 60, // 24 hours
+  },
   secret: process.env.NEXTAUTH_SECRET,
   session: {
-    strategy: "jwt"
-
+    strategy: "jwt",
+    maxAge: 24 * 60 * 60, // 24 hours
   },
   debug: process.env.NODE_ENV !== "production",
   pages: {
