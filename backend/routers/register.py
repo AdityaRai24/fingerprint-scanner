@@ -208,7 +208,7 @@ async def register_user(req: RegisterRequest, current_user: User = Depends(verif
         print("📋 Step 4: Preparing user data for database insertion")
 
         user_data = {
-            "auth_id": "2bb80095-dd6a-4226-9822-ffc81d20c1cf",
+            "auth_id": current_user.id,
             "first_name": req.first_name,
             "last_name": req.last_name,
             "address": req.address,

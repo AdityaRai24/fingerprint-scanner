@@ -23,14 +23,14 @@ export const authOptions: AuthOptions = {
           .eq('email', credentials.email)
           .single();
 
-        if(error || !user || !user.password){
-          throw new Error("Invalid credentials");
+        if(error || !user){
+          throw new Error("Invalid email");
         }
 
         const correctPassword = await bcrypt.compare(credentials.password, user.password);
 
         if(!correctPassword){
-          throw new Error("Invalid credentials");
+          throw new Error("Invalid password");
         }
 
         return {

@@ -12,6 +12,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm } from 'react-hook-form';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { toast } from 'sonner'; // Import toast
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 const signInSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
@@ -25,7 +27,7 @@ const SignInContent: React.FC = () => {
   const callbackUrl = searchParams.get('callbackUrl') || '/capture';
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const router = useRouter(); // Initialize useRouter
 
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
@@ -37,23 +39,32 @@ const SignInContent: React.FC = () => {
 
   const onSubmit = async (values: SignInFormValues) => {
     setIsSubmitting(true);
-    setError(null);
     
     try {
       // Use NextAuth's signIn method with the callbackUrl
       const result = await signIn('credentials', {
-        redirect: true,
+        redirect: false,
         callbackUrl,
         email: values.email,
         password: values.password,
       });
       
       if (result?.error) {
-        setError(result.error);
+        console.log("NextAuth Error:", result.error); // Add this line for debugging
+        // Display specific error messages from NextAuth
+        if (result.error === "Invalid email" || result.error === "Invalid password") {
+          toast.error(result.error); // Display the specific error message
+        } else {
+          toast.error('An unexpected error occurred. Please try again.'); // Generic fallback for other errors
+        }
         setIsSubmitting(false);
+      } else if (result?.ok) {
+        toast.success("Sign in successful!"); // Show success toast
+        setIsSubmitting(false);
+        router.push(callbackUrl); // Manually redirect on successful sign-in
       }
     } catch (err) {
-      setError('An error occurred during sign in');
+      toast.error('An error occurred during sign in. Please check your network connection.');
       console.error(err);
       setIsSubmitting(false);
     }
@@ -75,12 +86,6 @@ const SignInContent: React.FC = () => {
         title="Welcome Back" 
         description="Sign in to your account to continue"
       >
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4 text-sm">
-            {error}
-          </div>
-        )}
-        
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             {/* Email field */}

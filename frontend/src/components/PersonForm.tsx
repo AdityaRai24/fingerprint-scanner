@@ -73,6 +73,7 @@ export default function PersonForm({ faceImage, thumbImage }: PersonFormProps) {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/register`, {
           method: "POST",
           body: JSON.stringify({
+            user_id : session.user.id,
             first_name: firstName,
             last_name: lastName,
             address: address,
